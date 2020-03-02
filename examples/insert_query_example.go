@@ -9,19 +9,7 @@ import (
 	"time"
 )
 
-type User struct {
-	gorm.Model
-	Username string
-	Orders   []Order
-}
-type Order struct {
-	gorm.Model
-	UserID uint
-	Price  float64
-	Type   string
-}
-
-func main() {
+func insertQueryExample() {
 
 	db, err := gorm.Open("postgres", "host=localhost port=5432 user=postgres dbname=postgres password=password search_path=hazelcast sslmode=disable")
 	if err != nil {

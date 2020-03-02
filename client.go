@@ -47,12 +47,12 @@ func (hz *hzGorm) cacheHit(scope *gorm.Scope) {
 		values, err := hzMap.Values()
 		if err != nil {
 			// continues for db ops
-			hz.continueForDbOperations(scope)
+			hz.continueForDbOperations(scope, true)
 			return
 		}
 		if len(values) == 0 {
 			// continues for db ops
-			hz.continueForDbOperations(scope)
+			hz.continueForDbOperations(scope, true)
 			return
 		}
 		hz.addJsonToScopeStruct(scope, values)
@@ -61,13 +61,13 @@ func (hz *hzGorm) cacheHit(scope *gorm.Scope) {
 		values, err := hzMap.ValuesWithPredicate(predicate.SQL(sqlPredicate))
 		if err != nil {
 			// continues for db ops
-			hz.continueForDbOperations(scope)
+			hz.continueForDbOperations(scope, false)
 			return
 		}
 		if len(values) == 0 {
 			// continues for db ops
 			hz.disableCallback("hzgorm:before_query")
-			hz.continueForDbOperations(scope)
+			hz.continueForDbOperations(scope, false)
 			hz.enableCallback("hzgorm:before_query")
 			return
 		}
@@ -76,9 +76,14 @@ func (hz *hzGorm) cacheHit(scope *gorm.Scope) {
 	}
 }
 
-func (hz *hzGorm) continueForDbOperations(scope *gorm.Scope) {
-
-	hz.db.Raw(scope.SQL, scope.SQLVars).Scan(scope.Value)
+func (hz *hzGorm) continueForDbOperations(scope *gorm.Scope, isFindAll bool) {
+	if isFindAll {
+		hz.disableCallback(All)
+		hz.db.Find(scope.Value)
+		hz.enableCallback(All)
+	} else {
+		hz.db.Raw(scope.SQL, scope.SQLVars).Scan(scope.Value)
+	}
 
 	switch reflect.TypeOf(scope.Value).Elem().Kind() {
 	case reflect.Slice:

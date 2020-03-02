@@ -195,10 +195,8 @@ func (hz *hzGorm) SetQueryTtl(ttl time.Duration) {
 
 func (hz *hzGorm) getQueryTtl() time.Duration {
 	if hz.Options.queryTtl == 0 {
-		log.Println("default ttl")
 		return hz.Options.Ttl
 	} else {
-		log.Println("using query ttl")
 		return hz.Options.queryTtl
 	}
 }
@@ -218,6 +216,13 @@ func (hz *hzGorm) disableCallback(callbackName string) {
 		hz.db.Callback().Query().Replace("hzgorm:before_query", voidCallback)
 	case "hzgorm:after_query":
 		hz.db.Callback().Query().Replace("hzgorm:after_query", voidCallback)
+	case All:
+		hz.db.Callback().Create().Replace("hzgorm:before_create", voidCallback)
+		hz.db.Callback().Create().Replace("hzgorm:after_create", voidCallback)
+		hz.db.Callback().Update().Replace("hzgorm:before_update", voidCallback)
+		hz.db.Callback().Update().Replace("hzgorm:after_update", voidCallback)
+		hz.db.Callback().Query().Replace("hzgorm:before_query", voidCallback)
+		hz.db.Callback().Query().Replace("hzgorm:after_query", voidCallback)
 	}
 }
 
@@ -235,6 +240,13 @@ func (hz *hzGorm) enableCallback(callbackName string) {
 	case "hzgorm:before_query":
 		hz.db.Callback().Query().Replace("hzgorm:before_query", hz.hazelcastBeforeQueryCallback)
 	case "hzgorm:after_query":
+		hz.db.Callback().Query().Replace("hzgorm:after_query", hz.hazelcastAfterQueryCallback)
+	case All:
+		hz.db.Callback().Create().Replace("hzgorm:before_create", hz.hazelcastBeforeCreateCallback)
+		hz.db.Callback().Create().Replace("hzgorm:after_create", hz.hazelcastAfterCreateCallback)
+		hz.db.Callback().Update().Replace("hzgorm:before_update", hz.hazelcastBeforeUpdateCallback)
+		hz.db.Callback().Update().Replace("hzgorm:after_update", hz.hazelcastAfterUpdateCallback)
+		hz.db.Callback().Query().Replace("hzgorm:before_query", hz.hazelcastBeforeQueryCallback)
 		hz.db.Callback().Query().Replace("hzgorm:after_query", hz.hazelcastAfterQueryCallback)
 	}
 }
