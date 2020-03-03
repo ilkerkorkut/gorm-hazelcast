@@ -42,45 +42,53 @@ func (hz *hzGorm) cacheHit(scope *gorm.Scope) {
 
 	sqlPredicate := hz.predicateBuilder(scope.TableName(), scope.SQL, scope.SQLVars, fieldNames)
 
+	queryOrder, limitValue := hz.parseLimitAndOrder(scope.SQL)
+
 	hzMap, _ := hz.Client.GetMap(scope.TableName())
 	if sqlPredicate == "" {
 		values, err := hzMap.Values()
 		if err != nil {
 			// continues for db ops
-			hz.continueForDbOperations(scope, true)
+			hz.continueForDbOperations(scope, true, queryOrder, limitValue)
 			return
 		}
 		if len(values) == 0 {
 			// continues for db ops
-			hz.continueForDbOperations(scope, true)
+			hz.continueForDbOperations(scope, true, queryOrder, limitValue)
 			return
 		}
-		hz.addJsonToScopeStruct(scope, values)
+		hz.addJsonToScopeStruct(scope, values, limitValue)
 		return
 	} else {
 		values, err := hzMap.ValuesWithPredicate(predicate.SQL(sqlPredicate))
 		if err != nil {
 			// continues for db ops
-			hz.continueForDbOperations(scope, false)
+			hz.continueForDbOperations(scope, false, queryOrder, limitValue)
 			return
 		}
 		if len(values) == 0 {
 			// continues for db ops
 			hz.disableCallback("hzgorm:before_query")
-			hz.continueForDbOperations(scope, false)
+			hz.continueForDbOperations(scope, false, queryOrder, limitValue)
 			hz.enableCallback("hzgorm:before_query")
 			return
 		}
-		hz.addJsonToScopeStruct(scope, values)
+		hz.addJsonToScopeStruct(scope, values, limitValue)
 		return
 	}
 }
 
-func (hz *hzGorm) continueForDbOperations(scope *gorm.Scope, isFindAll bool) {
+func (hz *hzGorm) continueForDbOperations(scope *gorm.Scope, isFindAll bool, queryOrder string, limit int) {
 	if isFindAll {
-		hz.disableCallback(All)
-		hz.db.Find(scope.Value)
-		hz.enableCallback(All)
+		if queryOrder == desc {
+			hz.disableCallback(All)
+			hz.db.Limit(limit).Order(scope.PrimaryKey() +" "+ desc).Find(scope.Value)
+			hz.enableCallback(All)
+		} else {
+			hz.disableCallback(All)
+			hz.db.Limit(limit).Find(scope.Value)
+			hz.enableCallback(All)
+		}
 	} else {
 		hz.db.Raw(scope.SQL, scope.SQLVars).Scan(scope.Value)
 	}
@@ -120,19 +128,36 @@ func (hz *hzGorm) continueForDbOperations(scope *gorm.Scope, isFindAll bool) {
 	}
 }
 
-func (hz *hzGorm) addJsonToScopeStruct(scope *gorm.Scope, values []interface{}) {
+func (hz *hzGorm) addJsonToScopeStruct(scope *gorm.Scope, values []interface{}, limit int) {
+	limitCounter := 0
 	for _, val := range values {
-		cleanObject := hz.utils.createNewStructInterface(scope.IndirectValue())
-		err := val.(*core.HazelcastJSONValue).Unmarshal(&cleanObject)
-		if err != nil {
-
-		} else {
-			if scope.IndirectValue().Kind() == reflect.Struct {
-				scope.IndirectValue().Set(reflect.ValueOf(cleanObject).Elem())
-			} else if scope.IndirectValue().Kind() == reflect.Slice {
-				result := reflect.Append(scope.IndirectValue(), reflect.ValueOf(cleanObject).Elem())
-				scope.IndirectValue().Set(result)
+		if limit != -1 {
+			if limitCounter <= limit {
+				hz.addJson(scope, val, nil)
+				limitCounter++
+			} else {
+				break
 			}
+		} else {
+			hz.addJson(scope, val, nil)
+		}
+	}
+}
+
+func (hz *hzGorm) addJson(scope *gorm.Scope, val interface{}, reversedVal interface{}) {
+	cleanObject := hz.utils.createNewStructInterface(scope.IndirectValue())
+	var err error
+	if reversedVal == nil {
+		err = val.(*core.HazelcastJSONValue).Unmarshal(&cleanObject)
+	} else {
+		err = reversedVal.(*core.HazelcastJSONValue).Unmarshal(&cleanObject)
+	}
+	if err == nil {
+		if scope.IndirectValue().Kind() == reflect.Struct {
+			scope.IndirectValue().Set(reflect.ValueOf(cleanObject).Elem())
+		} else if scope.IndirectValue().Kind() == reflect.Slice {
+			result := reflect.Append(scope.IndirectValue(), reflect.ValueOf(cleanObject).Elem())
+			scope.IndirectValue().Set(result)
 		}
 	}
 }

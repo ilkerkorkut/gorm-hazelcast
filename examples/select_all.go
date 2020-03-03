@@ -24,7 +24,7 @@ func selectAllQuery() {
 
 	var users []User
 
-	if err := db.Preload("Orders").Find(&users).Error; err != nil {
+	if err := db.Order("id desc").Preload("Orders").Limit(2).Find(&users).Error; err != nil {
 		log.Printf("err: %v", err)
 	}
 

@@ -7,7 +7,10 @@ The primary goal of the `hzgorm` project is to make it easier to cache [gorm](ht
 
 [Hazelcast Reference Manual](https://docs.hazelcast.org/docs/latest/manual/html-single/index.html)
 
-Run hazelcast with docker:
+# Requirements
+Hazelcast IMDG 3.6 or newer
+
+- Run hazelcast with docker:
 ``` 
 docker run hazelcast/hazelcast:3.12.6
 ```
@@ -17,6 +20,8 @@ docker run hazelcast/hazelcast:3.12.6
 `go get github.com/ilkerkorkut/gorm-hazelcast`
 
 # Usage
+
+There are different types of usages in [examples](https://github.com/ilkerkorkut/gorm-hazelcast/tree/master/examples) directory.
 
 ```go
 package main
@@ -48,24 +53,14 @@ func main() {
         return
     }
 
-    db.AutoMigrate(&User{}, &Order{})
-
     hz := hzgorm.Register(db, &hzgorm.Options{
     		CacheAfterPersist: true,
     		Ttl: 120 * time.Second,
     	})
     log.Printf("Hz Instance %v", hz)
-    
-    orders := []Order{{
-		Type: "Software",
-	}}
-	db.Save(&User{
-		Username: "ilker",
-		Orders:   orders,
-	})
 
     var users []User
-    if err := db.Table("users").Preload("Orders").Where("username = ?", "ilker").Or("username = ?", "ilker").Find(&users).Error; err != nil {
+    if err := db.Table("users").Preload("Orders").Where("username = ?", "ilker").Or("username = ?", "ilker-2").Find(&users).Error; err != nil {
         log.Printf("Err: %v", err)
     }
 
@@ -77,6 +72,8 @@ func main() {
 If `CacheAfterPersist` option is `true` , caches data after its persistence to db otherwise persists cache before persisting data on db. By default `CacheAfterPersist` is `true`
 
 You can set `Ttl (Time to Live)` parameter to your options for your whole queries. By default this option is infinite.
+
+In Options `HazelcastClientConfig` field. You are able to set your custom Hazelcast client configuration. 
 
 ```
 hzgorm.Register(db, &hzgorm.Options{
@@ -90,15 +87,15 @@ After registering `hzgorm` instance, you will be able to use following api metho
 
 ```go
 hz.EvictAll(tableName) // Evict all values in cache with its tablename
-hz.EvictWithPrimaryKey() // Evict single cache entry with tablename and primarykey
+hz.EvictWithPrimaryKey(tableName, primaryKey) // Evict single cache entry with tablename and primarykey
 hz.DisableCache(hzgorm.ReadWriteUpdate) // Disables cache with type, ReadWriteUpdate, Read, Write ,Update
 hz.EnableCache(hzgorm.ReadWriteUpdate) // Enables cache with type, ReadWriteUpdate, Read, Write ,Update
 hz.SetQueryTtl(120 * time.Second) // Single query based TTL
 hz.Client // Reach native hazelcast-go-client
-hz.Options // Change or get options dynamically
+hz.Options // Change or get options dynamically (dynamic options changes are not recommended)
 ```
 
-### Supported SQL Syntax  
+### Supported SQL Syntax for Hazelcast Cache 
   
 **AND/OR:** `<expression> AND <expression> AND <expression>...`
   
@@ -149,3 +146,5 @@ ILIKE is similar to the LIKE predicate but in a case-insensitive manner.
 
 
 **Supports Preloading entities and cache them as another map.** 
+
+**Data orders are not guaranteed.**

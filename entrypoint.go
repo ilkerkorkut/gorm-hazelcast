@@ -30,6 +30,7 @@ const (
 	Update          = "update"
 )
 
+// Register Hazelcast cache on gorm
 func Register(db *gorm.DB, options *Options) (*hzGorm, error) {
 	var hz hzGorm
 	hz.db = db
@@ -98,10 +99,7 @@ func Register(db *gorm.DB, options *Options) (*hzGorm, error) {
 	return &hz, nil
 }
 
-func (hz *hzGorm) DB() *gorm.DB {
-	return hz.db
-}
-
+// Disable cache by type
 func (hz *hzGorm) DisableCache(disabledType string) *hzGorm {
 	if disabledType == ReadWriteUpdate || disabledType == All {
 		hz.db.Callback().Create().Replace("hzgorm:before_create", voidCallback)
@@ -129,6 +127,7 @@ func (hz *hzGorm) DisableCache(disabledType string) *hzGorm {
 	return hz
 }
 
+// Enable cache by type
 func (hz *hzGorm) EnableCache(enabledType string) *hzGorm {
 	if enabledType == ReadWriteUpdate || enabledType == All {
 		hz.db.Callback().Create().Replace("hzgorm:before_create", hz.hazelcastBeforeCreateCallback)
@@ -171,6 +170,7 @@ func (hz *hzGorm) EvictAll(tableName string) *hzGorm {
 	return hz
 }
 
+// Evict single cache entry with tableName and primaryKey
 func (hz *hzGorm) EvictWithPrimaryKey(tableName string, key interface{}) *hzGorm {
 	mp, err := hz.Client.GetMap(tableName)
 	if err != nil {
@@ -189,6 +189,7 @@ func (hz *hzGorm) EvictWithPrimaryKey(tableName string, key interface{}) *hzGorm
 	return hz
 }
 
+// Set next query result cache ttl
 func (hz *hzGorm) SetQueryTtl(ttl time.Duration) {
 	hz.Options.queryTtl = ttl
 }

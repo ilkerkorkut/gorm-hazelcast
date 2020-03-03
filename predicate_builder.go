@@ -4,7 +4,14 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"regexp"
+	"strconv"
 	"strings"
+)
+
+const (
+	asc   = "asc"
+	desc  = "desc"
+	limit = "LIMIT"
 )
 
 // TODO: REMOVE - GROUP BY - HAVING - JOIN etc.
@@ -46,4 +53,40 @@ func (hz *hzGorm) predicateNormalize(predicate string, fieldNames []string) stri
 		predicate = strings.ReplaceAll(predicate, "\""+fieldName+"\"", fieldName)
 	}
 	return predicate
+}
+
+func (hz *hzGorm) parseLimitAndOrder(predicate string) (string, int) {
+	if strings.Contains(predicate, limit) {
+		limitValue := strings.TrimSpace(hz.utils.stringAfter(predicate, limit))
+		if limitValue != "" {
+			lv, err := strconv.Atoi(limitValue)
+			if err != nil {
+				return "", -1
+			}
+			if strings.Contains(predicate, asc) {
+				return asc, lv
+			} else if strings.Contains(predicate, desc) {
+				return desc, lv
+			} else {
+				return "", lv
+			}
+		} else {
+			if strings.Contains(predicate, asc) {
+				return asc, -1
+			} else if strings.Contains(predicate, desc) {
+				return desc, -1
+			} else {
+				return "", -1
+			}
+		}
+	} else {
+		if strings.Contains(predicate, asc) {
+			return asc, -1
+		} else if strings.Contains(predicate, desc) {
+			return desc, -1
+		} else {
+			return "", -1
+		}
+	}
+
 }
