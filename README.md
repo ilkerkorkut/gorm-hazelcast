@@ -75,7 +75,7 @@ You can set `Ttl (Time to Live)` parameter to your options for your whole querie
 
 In Options `HazelcastClientConfig` field. You are able to set your custom Hazelcast client configuration. 
 
-```
+```go
 hzgorm.Register(db, &hzgorm.Options{
     CacheAfterPersist: true,
     Ttl: 120 * time.Second,
