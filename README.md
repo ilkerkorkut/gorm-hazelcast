@@ -3,12 +3,15 @@ gorm-hazelcast
 
 The primary goal of the `hzgorm` project is to make it easier to cache [gorm](https://github.com/jinzhu/gorm) data results with a single line of code on Hazelcast. This module provides integration with [Hazelcast](http://github.com/hazelcast/hazelcast).
 
-[Download Hazelcast](https://hazelcast.org/download/)
+![GitHub tag (latest SemVer)](https://img.shields.io/github/v/tag/ilkerkorkut/gorm-hazelcast) ![GitHub last commit](https://img.shields.io/github/last-commit/ilkerkorkut/gorm-hazelcast) ![GitHub](https://img.shields.io/github/license/ilkerkorkut/gorm-hazelcast) ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/ilkerkorkut/gorm-hazelcast)
 
-[Hazelcast Reference Manual](https://docs.hazelcast.org/docs/latest/manual/html-single/index.html)
+[Download Hazelcast](https://hazelcast.org/imdg/download/archives/#hazelcast-imdg-3-12-6)
+
+[Hazelcast Reference Manual](https://docs.hazelcast.org/docs/3.12.6/manual/html-single/index.html)
+
 
 # Requirements
-Hazelcast IMDG 3.6 or newer
+Hazelcast IMDG 3.6 or newer _(currently not supported 4.0)_
 
 - Run hazelcast with docker:
 ``` 
@@ -21,59 +24,24 @@ docker run hazelcast/hazelcast:3.12.6
 
 # Usage
 
-There are different types of usages in [examples](https://github.com/ilkerkorkut/gorm-hazelcast/tree/master/examples) directory.
+Use gorm-hazelcast plugin with a single-line cache registration on gorm. To initialize with Options parameters, please look at [Options section]((https://github.com/ilkerkorkut/gorm-hazelcast#options)).
+
+There are different types of usages in [examples](https://github.com/ilkerkorkut/gorm-hazelcast/tree/master/examples) directory. Look at [Api section](https://github.com/ilkerkorkut/gorm-hazelcast#api) for additional programmatic usage.
 
 ```go
-package main
+import hzgorm "github.com/ilkerkorkut/gorm-hazelcast"
 
-import (
-	"log"
-	"github.com/ilkerkorkut/hazelcast-gorm"
-	"github.com/jinzhu/gorm"
-	_ "github.com/lib/pq"
-    "time"
-)
-
-type User struct {
-	gorm.Model
-	Username string
-	Orders   []Order
-}
-type Order struct {
-	gorm.Model
-	UserID uint
-	Price  float64
-	Type   string
-}
-
-func main() {
-    db, err := gorm.Open("postgres", "host=localhost port=5432 user=postgres dbname=postgres password=password search_path=schema_name sslmode=disable")
-    if err != nil {
-        log.Println("Error while postgres connection !!!")
-        return
-    }
-
-    hz := hzgorm.Register(db, &hzgorm.Options{
-    		CacheAfterPersist: true,
-    		Ttl: 120 * time.Second,
-    	})
-    log.Printf("Hz Instance %v", hz)
-
-    var users []User
-    if err := db.Table("users").Preload("Orders").Where("username = ?", "ilker").Or("username = ?", "ilker-2").Find(&users).Error; err != nil {
-        log.Printf("Err: %v", err)
-    }
-
-    log.Printf("Result : %v", users)
-}
+hzgorm.Register(db, nil)
 ```
 
-#### Options
-If `CacheAfterPersist` option is `true` , caches data after its persistence to db otherwise persists cache before persisting data on db. By default `CacheAfterPersist` is `true`
+# Options
+gorm-hazelcast provides three type option parameters during initializing.
 
-You can set `Ttl (Time to Live)` parameter to your options for your whole queries. By default this option is infinite.
+`CacheAfterPersist` : If `CacheAfterPersist` option is `true` , caches data after its persistence to db otherwise persists cache before persisting data on db. By default `CacheAfterPersist` is `true`
 
-In Options `HazelcastClientConfig` field. You are able to set your custom Hazelcast client configuration. 
+`Ttl`: You can set `Ttl (Time to Live)` parameter to your options for your whole queries. By default this option is infinite. Look at [Api section](https://github.com/ilkerkorkut/gorm-hazelcast#api) for query based ttl.
+
+`HazelcastClientConfig`: In Options `HazelcastClientConfig` field. You are able to set your custom Hazelcast client configuration. 
 
 ```go
 hzgorm.Register(db, &hzgorm.Options{
@@ -82,7 +50,7 @@ hzgorm.Register(db, &hzgorm.Options{
 })
 ```
 
-#### Api
+# Api
 After registering `hzgorm` instance, you will be able to use following api methods.
 
 ```go
@@ -95,7 +63,7 @@ hz.Client // Reach native hazelcast-go-client
 hz.Options // Change or get options dynamically (dynamic options changes are not recommended)
 ```
 
-### Supported SQL Syntax for Hazelcast Cache 
+## Supported SQL Syntax for Hazelcast Cache 
   
 **AND/OR:** `<expression> AND <expression> AND <expression>...`
   
@@ -148,3 +116,8 @@ ILIKE is similar to the LIKE predicate but in a case-insensitive manner.
 **Supports Preloading entities and cache them as another map.** 
 
 **Data orders are not guaranteed.**
+
+
+# Contributing
+
+Feel free to contribute, or [create an issue](https://github.com/ilkerkorkut/gorm-hazelcast/issues) if you found a bug or need a feature request.

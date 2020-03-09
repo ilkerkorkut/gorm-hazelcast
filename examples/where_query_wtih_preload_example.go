@@ -22,13 +22,13 @@ func queryWithPreload() {
 		Ttl:               120 * time.Second,
 	})
 	if err != nil {
-		log.Println("")
+		log.Println(err)
 	}
 	log.Printf("hzgorm instance %v", hz)
 
 	var users []User
 
-	if err := db.Table("users").Preload("Orders").Where("username = ?", "ilker").Or("username = ?", "ilker2").Find(&users).Error; err != nil {
+	if err := db.Table("users").Preload("Orders").Where("username = ?", "ilker1").Or("username = ?", "ilker2").Find(&users).Error; err != nil {
 		log.Printf("err: %v", err)
 	}
 	log.Printf("query result : %v", users)
