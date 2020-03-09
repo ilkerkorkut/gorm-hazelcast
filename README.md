@@ -41,7 +41,7 @@ gorm-hazelcast provides three type option parameters during initializing.
 
 `Ttl`: You can set `Ttl (Time to Live)` parameter to your options for your whole queries. By default this option is infinite. Look at [Api section](https://github.com/ilkerkorkut/gorm-hazelcast#api) for query based ttl.
 
-`HazelcastClientConfig`: In Options `HazelcastClientConfig` field. You are able to set your custom Hazelcast client configuration. 
+`HazelcastClientConfig`: In Options `HazelcastClientConfig` field. You are able to set your custom [Hazelcast client configuration](https://github.com/hazelcast/hazelcast-go-client#142-configuring-hazelcast-go-client). 
 
 ```go
 hzgorm.Register(db, &hzgorm.Options{
